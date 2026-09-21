@@ -9,7 +9,7 @@ In this lab, you will containerize a machine learning training pipeline and infe
 
  - [ ] **Deliverable 2**: Containerize the inference service to serve predictions on a specific port and show the `./logs/predictions.log` file on your host to the TA.  Explain what the Dockerfile is and how it helps containerize the inference service.
 
- - [ ] **Deliverable 3**: Call the inference service health endpoint before and after destroying the named volume to demonstrate how model availability changes. Explain the difference between named volumes and bind mounts in Docker.
+ - [ ] **Deliverable 3**: Attempt to call the inference service health endpoint before and after removing the Compose named volume to demonstrate how model availability changes. Explain the difference between named volumes and bind mounts in Docker.
 
 
 ## Step 0: Setup Docker
@@ -84,7 +84,7 @@ Create a local directory for logs, then run the inference container with both a 
 ```bash
 mkdir -p ./logs
 docker build -t mlip-inference -f docker/inference/Dockerfile .
-docker run --rm -p 8081:8080 \
+docker run --rm -p 127.0.0.1:8081:8080 \
   -v wine_model_storage:/app/models \
   -v $(pwd)/logs:/app/logs \
   mlip-inference
@@ -120,6 +120,8 @@ curl -X POST http://localhost:8081/predict \
 
 After sending predictions, check your local `./logs/` directory — you should see a `predictions.log` file with timestamped entries. This is the bind mount in action: the container writes to `/app/logs/` and the file appears on your host filesystem.
 
+Stop the manually run inference container before moving to Step 3.
+
 
 ## Step 3: Docker Compose
 
@@ -129,7 +131,7 @@ You need to fill in:
 - Build context and Dockerfile path for each service
 - **Named volume** `wine_model_storage` mounted to `/app/models` on both services (for sharing the model)
 - **Bind mount** `./logs` mapped to `/app/logs` on the inference service (for prediction logs)
-- Port mapping for the inference service
+- Port mapping for the inference service, accessible only from localhost
 - Named volume definition in the `volumes:` section at the bottom
 
 Then run:
@@ -183,7 +185,7 @@ To fully reset the environment and delete the model:
 ```bash
 docker compose down -v
 ```
-The -v flag wipes the Named Volume. Now run up the inference container again, and verify the health again, discuss your results with the TA.
+The -v flag removes the Compose named volume. Now run only the inference container again, try the health check, and explain what you observe to the TA.
 
 
 ## Additional Resources

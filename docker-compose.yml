@@ -19,7 +19,7 @@ services:
     volumes:
       -
       -
-    # TODO: Expose port 8080 for the Flask app
+    # TODO: Publish the Flask app's container port 8080 on localhost
     ports:
       -
     # Ensure that the inference service starts after the training service
