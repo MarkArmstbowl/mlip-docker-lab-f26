@@ -215,7 +215,7 @@ After TA checkoff, stop and remove any remaining Compose containers and the name
 docker compose down -v
 ```
 
-You may also want to remove the images and the standalone named volume you created earlier in the lab. Use `docker image ls` and `docker volume ls` to identify them, then remove only the ones you recognize with `docker image rm IMAGE_NAME` and `docker volume rm VOLUME_NAME`.
+You may also want to remove the images and the standalone named volume you created earlier in the lab. Use `docker image ls` and `docker volume ls` to identify them. Only remove resources you are sure you created for this lab and no longer need, using `docker image rm IMAGE_NAME` or `docker volume rm VOLUME_NAME`.
 
 ## Additional Resources
 
