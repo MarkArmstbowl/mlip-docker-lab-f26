@@ -205,6 +205,18 @@ The `-v` flag removes the Compose named volume. Now run only the inference conta
 
 **Think about it:** If you give a teammate only your inference image, can they use it to serve predictions on their machine? What else would they need?
 
+To finish, press Ctrl+C to stop inference. If Compose hangs after showing `Stopped`, press Ctrl+C again; you may see `Error while Killing` even though the container has stopped.
+
+## Optional Cleanup
+
+After TA checkoff, stop and remove any remaining Compose containers and the named volume:
+
+```bash
+docker compose down -v
+```
+
+You may also want to remove the images and the standalone named volume you created earlier in the lab. Use `docker image ls` and `docker volume ls` to identify them, then remove only the ones you recognize with `docker image rm IMAGE_NAME` and `docker volume rm VOLUME_NAME`.
+
 ## Additional Resources
 
 - [Docker Curriculum](https://docker-curriculum.com/)
