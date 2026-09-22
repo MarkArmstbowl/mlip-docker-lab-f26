@@ -28,7 +28,7 @@ def predict():
         features = ...
 
         # TODO: Convert to numpy array, reshape for single prediction, and predict
-        # HINT: use np.array().reshape(1, -1)
+        # Hint: use np.array().reshape(1, -1)
         prediction = ...
 
         # Map prediction to wine class name
@@ -38,7 +38,6 @@ def predict():
         # TODO: Log the prediction to the bind-mounted log file
         # Append a line to LOG_PATH with the timestamp, input features, and prediction result
         # Example log line: "2026-02-09 12:00:00 | input: [13.2, 1.78, ...] | prediction: class_0"
-
 
         return jsonify({"prediction": result})
 

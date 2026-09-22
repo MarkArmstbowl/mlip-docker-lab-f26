@@ -1,27 +1,22 @@
 # Lab 5: Containerizing ML Models with Docker
 
 ## Overview
+
 In this lab, you will containerize a machine learning training pipeline and inference server using Docker. You will train a Wine classifier, serve it via Flask, and orchestrate both containers with Docker Compose. A key focus of this lab is **Docker volume management** — you will use both named volumes and bind mounts to share data between containers and persist artifacts on the host.
 
 ### Deliverables
 
- - [ ] **Deliverable 1**: The training script has been run in a container and the resulting model is saved to a shared volume. Able to explain why Docker is useful for reproducibility and portability in ML training scenarios.
-
- - [ ] **Deliverable 2**: Containerize the inference service to serve predictions on a specific port and show the `./logs/predictions.log` file on your host to the TA.  Explain what the Dockerfile is and how it helps containerize the inference service.
-
- - [ ] **Deliverable 3**: Attempt to call the inference service health endpoint before and after removing the Compose named volume to demonstrate how model availability changes. Explain the difference between named volumes and bind mounts in Docker.
-
+- [ ] **Deliverable 1**: Show that the training script ran in a container and saved the model to a shared volume. Explain why Docker is useful for reproducibility and portability in ML training.
+- [ ] **Deliverable 2**: Serve predictions from the inference container on localhost port 8081 and show the TA `./logs/predictions.log` on your host. Explain what the Dockerfile does for the inference service.
+- [ ] **Deliverable 3**: Attempt to call the inference service health endpoint before and after removing the Compose named volume. Explain the difference between named volumes and bind mounts in Docker.
 
 ## Step 0: Setup Docker
 
-Install Docker on your system and verify your installation:
+Install Docker using the [instructions for your operating system](https://docs.docker.com/get-started/get-docker/), then verify your installation:
 
 ```bash
 docker run hello-world
 ```
-
-Follow the instructions for your operating system: https://docs.docker.com/get-docker/
-
 
 ## Step 1: Containerize the Training Pipeline
 
@@ -29,7 +24,7 @@ Create a Docker container for the training code. When launched, the container sh
 
 ### 1a. Complete `train.py`
 
-Create a `RandomForestClassifier` and train it on the Wine dataset
+- Create a `RandomForestClassifier` and train it on the Wine dataset
 - Save the trained model using `joblib.dump()` to `/app/models/wine_model.pkl`
 
 ### 1b. Complete the Training Dockerfile
@@ -49,6 +44,7 @@ You should see output showing the test accuracy and a message that the model was
 
 **What is a named volume?** When you use `-v wine_model_storage:/app/models`, Docker creates a named volume called `wine_model_storage` that is managed by Docker. The data in this volume persists even after the container exits.
 
+**Think about it:** Was the model trained during `docker build` or `docker run`? What in your Dockerfile and terminal output tells you?
 
 ## Step 2: Containerize the Inference Server
 
@@ -56,11 +52,9 @@ Create a Docker container that loads the trained model from the shared volume an
 
 ### 2a. Complete `server.py`
 
-Open `docker/inference/server.py`. You need to:
+In `docker/inference/server.py`, load the trained model from the shared volume, extract features from the incoming JSON request, run inference, and log each prediction to a host-mounted log file (`/app/logs/predictions.log`).
 
-Load the trained model from the shared volume, extract features from the incoming JSON request, run inference, and log each prediction to a host-mounted log file (`/app/logs/predictions.log`)
-
-The server includes a `/health` endpoint that reports whether the model file exists — this is useful for debugging volume issues.
+The server includes a `/health` endpoint that reports whether the model file exists and whether it was loaded — this is useful for debugging volume issues.
 
 ### 2b. Create the Inference Dockerfile
 
@@ -70,10 +64,10 @@ Create a new file `docker/inference/Dockerfile` from scratch. It should:
 - Set the working directory to `/app`
 - Copy and install dependencies from a requirements file
 - Copy `server.py` to the working directory
-- Expose port 8081
+- Expose the port the Flask app listens on inside the container (see `server.py`)
 - Set the command to run `server.py`
 
-**HINT**: Look at the training Dockerfile for reference. Note that the build context is the project root, so paths should be `docker/inference/...`.
+**Hint:** Look at the training Dockerfile for reference. The build context is the project root, so paths should be `docker/inference/...`.
 
 You will also need to create `docker/inference/requirements.txt` with the necessary packages (Flask, scikit-learn, joblib, numpy).
 
@@ -91,6 +85,7 @@ docker run --rm -p 127.0.0.1:8081:8080 \
 ```
 
 Notice the two `-v` flags:
+
 - `wine_model_storage:/app/models` — **named volume** (Docker-managed, shared with training)
 - `$(pwd)/logs:/app/logs` — **bind mount** (maps your local `./logs/` directory into the container)
 
@@ -120,14 +115,16 @@ curl -X POST http://localhost:8081/predict \
 
 After sending predictions, check your local `./logs/` directory — you should see a `predictions.log` file with timestamped entries. This is the bind mount in action: the container writes to `/app/logs/` and the file appears on your host filesystem.
 
-Stop the manually run inference container before moving to Step 3.
+**Think about it:** If you run the training container again while the inference container stays up, will the next prediction use the newly saved model? What in `server.py` determines this?
 
+Stop the manually run inference container before moving to Step 3.
 
 ## Step 3: Docker Compose
 
 Docker Compose allows you to define and manage multi-container applications without long command-line parameters. Complete the `docker-compose.yml` file to set up both services.
 
 You need to fill in:
+
 - Build context and Dockerfile path for each service
 - **Named volume** `wine_model_storage` mounted to `/app/models` on both services (for sharing the model)
 - **Bind mount** `./logs` mapped to `/app/logs` on the inference service (for prediction logs)
@@ -141,10 +138,11 @@ docker compose up --build
 ```
 
 After both services start, test with the same curl commands from Step 2d. Verify that:
+
 - The prediction endpoint returns a valid wine class
 - The `./logs/predictions.log` file on your host is being written to
 
-During startup, did you see any errors? If not, could an error appear on another run? What might cause it, and how would you fix it? **Hint:** Look at the current `depends_on` setting and [Docker's Compose startup order documentation](https://docs.docker.com/compose/how-tos/startup-order/).
+**Think about it:** During startup, did you see any errors? If not, could an error appear on another run? What might cause it, and how would you fix it? **Hint:** Look at the current `depends_on` setting and [Docker's Compose startup order documentation](https://docs.docker.com/compose/how-tos/startup-order/).
 
 Shut it down:
 
@@ -152,56 +150,75 @@ Shut it down:
 docker compose down
 ```
 
-
 ## Step 4: Volume Lifecycle
 
 This step demonstrates the differences in how Docker manages data persistence and host-container sharing.
 
 ### 4a. Inspect the Named Volume
-Check where Docker physically stores your model on the host:
+
+Check where Docker reports storing the named volume:
+
 ```bash
 docker volume ls
 docker volume inspect wine_model_storage
 ```
-Observe the Mountpoint field; this is the Docker-managed path on your machine.
 
+Observe the `Mountpoint` field. On Docker Desktop, this path may be inside its Linux VM.
 
 ### 4b. Persistence Verification
-Verify that the trained model persists across training container destruction:
 
-Start both containers to run training and inference:
-```docker compose up --build```
-(Confirm health: curl http://localhost:8081/health)
+Verify that the trained model persists across training container destruction. Start both containers to run training and inference:
+
+```bash
+docker compose up --build
+```
+
+Confirm health:
+
+```bash
+curl http://localhost:8081/health
+```
 
 Stop and remove containers while retaining the named volume:
-```docker compose down```
+
+```bash
+docker compose down
+```
 
 Restart only the inference container:
-```docker compose up inference --no-deps```
+
+```bash
+docker compose up inference --no-deps
+```
 
 Run the health check again and confirm it still returns healthy, demonstrating that the model was successfully persisted in the named volume.
 
 ### 4c. Removing Volumes
+
 To fully reset the environment and delete the model:
 
 ```bash
 docker compose down -v
 ```
-The -v flag removes the Compose named volume. Now run only the inference container again, try the health check, and explain what you observe to the TA.
 
+The `-v` flag removes the Compose named volume. Now run only the inference container again, try the health check, and explain what you observe to the TA.
+
+**Think about it:** If you give a teammate only your inference image, can they use it to serve predictions on their machine? What else would they need?
 
 ## Additional Resources
 
-1. [Docker For Beginners](https://docker-curriculum.com/)
-2. [Docker Volumes Documentation](https://docs.docker.com/storage/volumes/)
-3. [Docker Bind Mounts Documentation](https://docs.docker.com/storage/bind-mounts/)
+- [Docker Curriculum](https://docker-curriculum.com/)
+- [Docker volumes](https://docs.docker.com/engine/storage/volumes/)
+- [Docker bind mounts](https://docs.docker.com/engine/storage/bind-mounts/)
 
 ## Troubleshooting
+
 If you encounter issues:
+
 - Check Docker daemon status
 - Verify port availability (is port 8081 already in use?)
 - Review service logs with `docker compose logs`
-- Ensure the training service completes before the inference service starts
-- Use `docker compose exec` to inspect container file systems
-- If the model file is missing, check that your named volume is correctly mounted with `docker volume ls`
+- If inference fails during startup, compare the training and inference logs
+- Use `docker compose exec` to inspect a running container's file system
+- If the model file is missing, compare the volume names in your commands or Compose file and check them with `docker volume ls`
 - If logs are not appearing on the host, verify your bind mount path
