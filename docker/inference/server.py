@@ -46,7 +46,7 @@ def predict():
 
 @app.route('/')
 def hello():
-    return 'Welcome to the Wine Classifier - MLIP S26 Docker Lab'
+    return 'Welcome to the Wine Classifier - MLIP F26 Docker Lab'
 
 @app.route('/health')
 def health():
