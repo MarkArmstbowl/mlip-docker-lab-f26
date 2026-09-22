@@ -144,6 +144,8 @@ After both services start, test with the same curl commands from Step 2d. Verify
 - The prediction endpoint returns a valid wine class
 - The `./logs/predictions.log` file on your host is being written to
 
+During startup, did you see any errors? If not, could an error appear on another run? What might cause it, and how would you fix it? **Hint:** Look at the current `depends_on` setting and [Docker's Compose startup order documentation](https://docs.docker.com/compose/how-tos/startup-order/).
+
 Shut it down:
 
 ```bash
